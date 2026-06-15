@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:520px; margin: 60px auto; text-align:center;">
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="#e60023"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.44 7.63 11.2-.1-.95-.2-2.4.04-3.44.22-.93 1.46-6.18 1.46-6.18s-.37-.74-.37-1.84c0-1.73.99-3.02 2.22-3.02 1.05 0 1.56.79 1.56 1.73 0 1.06-.67 2.63-1.02 4.1-.29 1.22.6 2.22 1.8 2.22 2.16 0 3.61-2.77 3.61-6.05 0-2.5-1.7-4.38-4.77-4.38-3.47 0-5.64 2.6-5.64 5.5 0 1 .29 1.7.74 2.24.2.25.23.34.16.62-.05.2-.17.7-.22.9-.07.28-.28.38-.51.28-1.44-.6-2.1-2.2-2.1-4 0-3.74 3.15-8.22 9.4-8.22 5.04 0 8.37 3.67 8.37 7.62 0 5.23-2.9 9.13-7.19 9.13-1.44 0-2.8-.78-3.26-1.65l-.9 3.47c-.3 1.1-.87 2.2-1.4 3.05C10.58 23.92 11.28 24 12 24c6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>
+
+  <h2 style="margin: 18px 0 8px; font-size: 1.5rem;">Pinterest Finder</h2>
+  <p style="color:#666; margin-bottom:32px; line-height:1.6;">
+    Importe ton export Pinterest pour retrouver tes épingles sur <strong>Vinted</strong> et <strong>Leboncoin</strong>.
+  </p>
+
+  {% if error %}
+  <div class="error" style="text-align:left; margin-bottom:20px;">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST" enctype="multipart/form-data">
+    <label for="zipfile" id="drop-zone" style="
+      display:block; border: 2px dashed #ddd; border-radius:14px;
+      padding: 36px 24px; cursor:pointer; background:white;
+      transition: border-color .2s, background .2s; margin-bottom:18px;
+    "
+    ondragover="event.preventDefault(); this.style.borderColor='#e60023'; this.style.background='#fff5f5'"
+    ondragleave="this.style.borderColor='#ddd'; this.style.background='white'"
+    ondrop="event.preventDefault(); document.getElementById('zipfile').files=event.dataTransfer.files; updateLabel(event.dataTransfer.files[0].name); this.style.borderColor='#e60023'">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="#ccc" style="display:block;margin:0 auto 10px"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.34C18 2.54 15.96.5 13.5.5c-1.5 0-2.8.75-3.62 1.88L9 3.5l-.88-1.12C7.3 1.25 6 .5 4.5.5 2.04.5 0 2.54 0 4.66c0 .46.11.9.18 1.34H0C-.11 6 0 6 0 6v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM13.5 2.5c1.1 0 2 .9 2 2 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2zM4.5 2.5c1.1 0 2 .9 2 2 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2zM18 20H2V8h16v12z"/></svg>
+      <div id="drop-label" style="color:#888; font-size:.92rem;">Glisse ton fichier ZIP ici, ou clique pour choisir</div>
+    </label>
+    <input type="file" id="zipfile" name="zipfile" accept=".zip" style="display:none"
+      onchange="updateLabel(this.files[0].name)">
+    <button type="submit" class="btn btn-red" style="width:100%; font-size:1rem; padding:13px;">
+      Importer mes épingles
+    </button>
+  </form>
+
+  <p style="margin-top:28px; font-size:.82rem; color:#aaa;">
+    Pour exporter tes données Pinterest :<br>
+    <strong>Paramètres → Confidentialité et données → Demander vos données</strong>
+  </p>
+</div>
+
+<script>
+function updateLabel(name) {
+  document.getElementById('drop-label').textContent = '✓ ' + name;
+  document.getElementById('drop-zone').style.borderColor = '#e60023';
+  document.getElementById('drop-zone').style.background = '#fff5f5';
+}
+document.getElementById('drop-zone').addEventListener('click', () => {
+  document.getElementById('zipfile').click();
+});
+</script>
+{% endblock %}

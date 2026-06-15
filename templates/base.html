@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pinterest Finder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8f6f4; color: #222; }
+    header {
+      background: #e60023;
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+    header a { color: white; text-decoration: none; opacity: .85; }
+    header a:hover { opacity: 1; }
+    .nav-links { margin-left: auto; display: flex; gap: 16px; font-size: .9rem; }
+    main { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+    .btn {
+      display: inline-block; padding: 10px 22px; border-radius: 24px;
+      font-weight: 600; font-size: .95rem; cursor: pointer;
+      text-decoration: none; border: none;
+    }
+    .btn-red { background: #e60023; color: white; }
+    .btn-red:hover { background: #c0001c; }
+    .btn-outline { background: white; color: #222; border: 1.5px solid #ccc; }
+    .btn-outline:hover { border-color: #888; }
+    .error { background: #fff0f0; border: 1px solid #fca5a5; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+<header>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.44 7.63 11.2-.1-.95-.2-2.4.04-3.44.22-.93 1.46-6.18 1.46-6.18s-.37-.74-.37-1.84c0-1.73.99-3.02 2.22-3.02 1.05 0 1.56.79 1.56 1.73 0 1.06-.67 2.63-1.02 4.1-.29 1.22.6 2.22 1.8 2.22 2.16 0 3.61-2.77 3.61-6.05 0-2.5-1.7-4.38-4.77-4.38-3.47 0-5.64 2.6-5.64 5.5 0 1 .29 1.7.74 2.24.2.25.23.34.16.62-.05.2-.17.7-.22.9-.07.28-.28.38-.51.28-1.44-.6-2.1-2.2-2.1-4 0-3.74 3.15-8.22 9.4-8.22 5.04 0 8.37 3.67 8.37 7.62 0 5.23-2.9 9.13-7.19 9.13-1.44 0-2.8-.78-3.26-1.65l-.9 3.47c-.3 1.1-.87 2.2-1.4 3.05C10.58 23.92 11.28 24 12 24c6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>
+  <h1>Pinterest Finder</h1>
+  <nav class="nav-links">
+    <a href="/">Accueil</a>
+    {% if logged_in is defined and logged_in %}
+    <a href="/logout">Se déconnecter</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
