@@ -43,14 +43,16 @@ def password_gate():
     return render_template("password.html", error=error)
 
 
-def parse_pinterest_export(zip_file) -> list[dict]:
+def parse_pinterest_export(zip_file) -> tuple[list[dict], list[str]]:
     boards = {}
 
     with zipfile.ZipFile(zip_file) as zf:
         names = zf.namelist()
+        json_files = [n for n in names if n.endswith(".json")]
 
-        pins_file = next((n for n in names if n.endswith("pins.json")), None)
-        boards_file = next((n for n in names if n.endswith("boards.json")), None)
+        # Cherche les fichiers pins et boards (plusieurs noms possibles)
+        pins_file = next((n for n in names if "pins" in n.lower() and n.endswith(".json")), None)
+        boards_file = next((n for n in names if "boards" in n.lower() and n.endswith(".json")), None)
 
         board_names = {}
         if boards_file:
@@ -95,7 +97,7 @@ def parse_pinterest_export(zip_file) -> list[dict]:
                     "image": image_url,
                 })
 
-    return list(boards.values())
+    return list(boards.values()), json_files
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -108,12 +110,15 @@ def index():
             error = "Merci d'uploader un fichier .zip (export Pinterest)."
         else:
             try:
-                boards = parse_pinterest_export(f)
+                boards, json_files = parse_pinterest_export(f)
                 session["boards"] = boards
             except Exception as e:
                 error = f"Impossible de lire le fichier : {e}"
             else:
-                return redirect(url_for("boards_view"))
+                if not boards:
+                    error = f"Aucune épingle trouvée. Fichiers JSON dans le ZIP : {', '.join(json_files) or 'aucun'}"
+                else:
+                    return redirect(url_for("boards_view"))
 
     return render_template("index.html", error=error)
 
