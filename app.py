@@ -43,61 +43,109 @@ def password_gate():
     return render_template("password.html", error=error)
 
 
+def _slug_to_keywords(url: str) -> str:
+    """Extrait des mots-clés lisibles depuis le slug d'une URL."""
+    from urllib.parse import urlparse, unquote
+    try:
+        path = unquote(urlparse(url).path)
+        # Dernier segment non vide
+        segments = [s for s in path.split("/") if s and not s.isdigit() and len(s) > 3]
+        if not segments:
+            return ""
+        slug = segments[-1]
+        # Retire les extensions et remplace les séparateurs
+        slug = slug.rsplit(".", 1)[0]
+        words = slug.replace("-", " ").replace("_", " ").replace("+", " ")
+        # Filtre les tokens purement numériques
+        words = " ".join(w for w in words.split() if not w.isdigit())
+        return words[:80]
+    except Exception:
+        return ""
+
+
+def _hash_to_image(h: str) -> str:
+    if not h or len(h) < 6:
+        return ""
+    return f"https://i.pinimg.com/236x/{h[:2]}/{h[2:4]}/{h[4:6]}/{h}.jpg"
+
+
+def _parse_field(block: str, field: str) -> str:
+    """Extrait la valeur d'un champ 'Field: value <br>' dans un bloc HTML."""
+    import re
+    pattern = rf"{re.escape(field)}:\s*(.*?)\s*(?:<br>|<a\s)"
+    m = re.search(pattern, block, re.IGNORECASE | re.DOTALL)
+    if not m:
+        return ""
+    val = BeautifulSoup(m.group(1), "lxml").get_text(strip=True)
+    return "" if val.lower() in ("no data", "none", "") else val
+
+
 def parse_pinterest_export(zip_file) -> tuple[list[dict], list[str]]:
-    boards = {}
+    from bs4 import BeautifulSoup
+    import re
+
+    boards: dict = {}
 
     with zipfile.ZipFile(zip_file) as zf:
         names = zf.namelist()
-        json_files = [n for n in names if n.endswith(".json")]
+        html_files = [n for n in names if n.endswith(".html")]
 
-        # Cherche les fichiers pins et boards (plusieurs noms possibles)
-        pins_file = next((n for n in names if "pins" in n.lower() and n.endswith(".json")), None)
-        boards_file = next((n for n in names if "boards" in n.lower() and n.endswith(".json")), None)
+        # --- Lis tous les fichiers pins/XXXX.html ---
+        pin_files = sorted(n for n in names if re.match(r"pins/\d+\.html", n))
+        if not pin_files:
+            return [], html_files
 
-        board_names = {}
-        if boards_file:
-            with zf.open(boards_file) as f:
-                raw = json.load(f)
-                if isinstance(raw, list):
-                    for b in raw:
-                        board_names[str(b.get("id", ""))] = b.get("name", "Tableau")
-                elif isinstance(raw, dict):
-                    for bid, b in raw.items():
-                        board_names[str(bid)] = b.get("name", "Tableau") if isinstance(b, dict) else str(b)
+        for pf in pin_files:
+            with zf.open(pf) as f:
+                soup = BeautifulSoup(f.read(), "lxml")
 
-        if pins_file:
-            with zf.open(pins_file) as f:
-                raw = json.load(f)
-                pins = raw if isinstance(raw, list) else raw.get("pins", [])
+            contents = soup.find(id="contents")
+            if not contents:
+                continue
 
-            for pin in pins:
-                board_id = str(pin.get("board_id") or pin.get("board", {}).get("id", "inconnu"))
-                board_name = board_names.get(board_id) or pin.get("board", {}).get("name", "Tableau")
+            # Chaque pin commence par une balise <a> avec l'URL Pinterest
+            raw_html = str(contents)
+            # Sépare par les liens Pinterest
+            blocks = re.split(r'(?=<a href="https://www\.pinterest\.com/pin/)', raw_html)
+
+            for block in blocks:
+                if 'pinterest.com/pin/' not in block:
+                    continue
+
+                title = _parse_field(block, "Title")
+                details = _parse_field(block, "Details")
+                board_id = _parse_field(block, "Board Id") or "inconnu"
+                board_name = _parse_field(block, "Board Name") or "Tableau"
+                img_hash = _parse_field(block, "Image")
+                alt_text = _parse_field(block, "Alt Text")
+
+                # Canonical link
+                canonical = ""
+                cm = re.search(r'Canonical Link:\s*<a href="([^"]+)"', block)
+                if cm:
+                    canonical = cm.group(1)
+
+                # Construit la requête de recherche
+                keyword = title or alt_text or _slug_to_keywords(canonical) or details
+                if not keyword:
+                    continue
+
+                image_url = _hash_to_image(img_hash)
 
                 if board_id not in boards:
                     boards[board_id] = {"id": board_id, "name": board_name, "pins": []}
-
-                media = pin.get("media") or {}
-                images = media.get("images") or {}
-                image_url = ""
-                for size in ("400x300", "236x", "orig"):
-                    if size in images:
-                        image_url = images[size].get("url", "")
-                        break
-                if not image_url and isinstance(images, dict):
-                    for v in images.values():
-                        if isinstance(v, dict) and v.get("url"):
-                            image_url = v["url"]
-                            break
+                elif board_name and board_name != "Tableau":
+                    boards[board_id]["name"] = board_name
 
                 boards[board_id]["pins"].append({
-                    "id": pin.get("id", ""),
-                    "title": pin.get("title", "").strip(),
-                    "description": pin.get("description", "").strip(),
+                    "id": "",
+                    "title": keyword,
+                    "description": details,
                     "image": image_url,
+                    "canonical": canonical,
                 })
 
-    return list(boards.values()), json_files
+    return list(boards.values()), html_files
 
 
 @app.route("/", methods=["GET", "POST"])
