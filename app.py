@@ -72,9 +72,9 @@ def _hash_to_image(h: str) -> str:
 
 def _parse_field(block: str, field: str) -> str:
     """Extrait la valeur d'un champ 'Field: value <br>' dans un bloc HTML."""
-    import re
-    pattern = rf"{re.escape(field)}:\s*(.*?)\s*(?:<br>|<a\s)"
-    m = re.search(pattern, block, re.IGNORECASE | re.DOTALL)
+    # Arrête dès le premier <br (avec ou sans /)
+    pattern = rf"{re.escape(field)}:\s*(.*?)\s*<br"
+    m = re.search(pattern, block, re.IGNORECASE)
     if not m:
         return ""
     val = BeautifulSoup(m.group(1), "html.parser").get_text(strip=True)
@@ -123,12 +123,19 @@ def parse_pinterest_export(zip_file) -> tuple[list[dict], list[str]]:
                 if cm:
                     canonical = cm.group(1)
 
+                # URL Pinterest de la pin (pour afficher l'image via og:image)
+                pin_url = ""
+                pm = re.search(r'href="(https://www\.pinterest\.com/pin/[^"]+)"', block)
+                if pm:
+                    pin_url = pm.group(1)
+
                 # Construit la requête de recherche
                 keyword = title or alt_text or _slug_to_keywords(canonical) or details
                 if not keyword:
                     continue
 
-                image_url = _hash_to_image(img_hash)
+                # Image : hash Pinterest → CDN (format connu)
+                image_url = _hash_to_image(img_hash) if img_hash else ""
 
                 if board_id not in boards:
                     boards[board_id] = {"id": board_id, "name": board_name, "pins": []}
