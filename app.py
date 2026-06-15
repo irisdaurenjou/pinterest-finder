@@ -76,7 +76,7 @@ def _parse_field(block: str, field: str) -> str:
     m = re.search(pattern, block, re.IGNORECASE | re.DOTALL)
     if not m:
         return ""
-    val = BeautifulSoup(m.group(1), "lxml").get_text(strip=True)
+    val = BeautifulSoup(m.group(1), "html.parser").get_text(strip=True)
     return "" if val.lower() in ("no data", "none", "") else val
 
 
@@ -97,7 +97,7 @@ def parse_pinterest_export(zip_file) -> tuple[list[dict], list[str]]:
 
         for pf in pin_files:
             with zf.open(pf) as f:
-                soup = BeautifulSoup(f.read(), "lxml")
+                soup = BeautifulSoup(f.read(), "html.parser")
 
             contents = soup.find(id="contents")
             if not contents:
