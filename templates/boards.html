@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
+<script>
+  // Sauvegarde les données dans localStorage pour éviter de re-uploader
+  try { localStorage.setItem('pf_boards', {{ boards_json | tojson }}); } catch(e) {}
+</script>
 
 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
   <h2 style="font-size:1.3rem;">Tes tableaux ({{ boards|length }})</h2>

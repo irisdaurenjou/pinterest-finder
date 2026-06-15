@@ -158,18 +158,26 @@ def parse_pinterest_export(zip_file) -> tuple[list[dict], list[str]]:
 def index():
     error = None
     if request.method == "POST":
+        # Restauration depuis localStorage (données JSON envoyées par le navigateur)
+        if request.is_json:
+            boards = request.get_json()
+            if boards:
+                session["boards"] = boards
+                return ("", 204)
+            return ("", 400)
+
         f = request.files.get("zipfile")
         if not f or not f.filename.endswith(".zip"):
             error = "Merci d'uploader un fichier .zip (export Pinterest)."
         else:
             try:
-                boards, json_files = parse_pinterest_export(f)
+                boards, html_files = parse_pinterest_export(f)
                 session["boards"] = boards
             except Exception as e:
                 error = f"Impossible de lire le fichier : {e}"
             else:
                 if not boards:
-                    error = f"Aucune épingle trouvée. Fichiers JSON dans le ZIP : {', '.join(json_files) or 'aucun'}"
+                    error = f"Aucune épingle trouvée. Fichiers dans le ZIP : {', '.join(html_files[:5]) or 'aucun'}"
                 else:
                     return redirect(url_for("boards_view"))
 
@@ -182,7 +190,7 @@ def boards_view():
     boards = session.get("boards")
     if not boards:
         return redirect(url_for("index"))
-    return render_template("boards.html", boards=boards)
+    return render_template("boards.html", boards=boards, boards_json=json.dumps(boards))
 
 
 @app.route("/pins/<board_id>")

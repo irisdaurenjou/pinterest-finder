@@ -47,5 +47,34 @@ function updateLabel(name) {
 document.getElementById('drop-zone').addEventListener('click', () => {
   document.getElementById('zipfile').click();
 });
+
+// Restaure automatiquement depuis localStorage si des données existent
+(function() {
+  try {
+    const saved = localStorage.getItem('pf_boards');
+    if (!saved) return;
+    const boards = JSON.parse(saved);
+    if (!boards || !boards.length) return;
+
+    // Affiche un bouton "Continuer"
+    const btn = document.createElement('div');
+    btn.style.cssText = 'margin-top:20px; padding:16px; background:white; border-radius:12px; border:1.5px solid #e60023; text-align:left;';
+    btn.innerHTML = `
+      <div style="font-size:.8rem;color:#e60023;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Données sauvegardées</div>
+      <div style="font-size:.95rem;font-weight:600;margin-bottom:12px;">${boards.length} tableaux disponibles</div>
+      <button onclick="restoreBoards()" class="btn btn-red" style="width:100%;padding:11px;font-size:.95rem;">Continuer sans re-uploader</button>
+      <button onclick="localStorage.removeItem('pf_boards');this.parentElement.remove()" style="width:100%;margin-top:8px;padding:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:.82rem;">Effacer et uploader un nouveau fichier</button>
+    `;
+    document.querySelector('form').before(btn);
+  } catch(e) {}
+})();
+
+function restoreBoards() {
+  try {
+    const boards = JSON.parse(localStorage.getItem('pf_boards'));
+    fetch('/', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(boards) })
+      .then(r => { if (r.ok) window.location.href = '/boards'; });
+  } catch(e) {}
+}
 </script>
 {% endblock %}
