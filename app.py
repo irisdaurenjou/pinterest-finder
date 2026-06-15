@@ -1,9 +1,12 @@
 import os
 import json
+import re
 import zipfile
 import secrets
 import concurrent.futures
 from functools import wraps
+from urllib.parse import urlparse, unquote
+from bs4 import BeautifulSoup
 from flask import Flask, redirect, request, session, render_template, url_for
 from flask_session import Session
 from dotenv import load_dotenv
@@ -44,8 +47,6 @@ def password_gate():
 
 
 def _slug_to_keywords(url: str) -> str:
-    """Extrait des mots-clés lisibles depuis le slug d'une URL."""
-    from urllib.parse import urlparse, unquote
     try:
         path = unquote(urlparse(url).path)
         # Dernier segment non vide
@@ -81,9 +82,6 @@ def _parse_field(block: str, field: str) -> str:
 
 
 def parse_pinterest_export(zip_file) -> tuple[list[dict], list[str]]:
-    from bs4 import BeautifulSoup
-    import re
-
     boards: dict = {}
 
     with zipfile.ZipFile(zip_file) as zf:
