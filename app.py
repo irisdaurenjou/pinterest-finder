@@ -46,6 +46,29 @@ def password_gate():
     return render_template("password.html", error=error)
 
 
+def _clean_query(q: str) -> str:
+    """Nettoie une requête : retire les suffixes de sites, tailles, langues étrangères."""
+    import re
+    # Retire les suffixes " | SiteName" ou " - SiteName"
+    q = re.sub(r'\s*[\|\-–]\s*(vinted|pinterest|etsy|amazon|zara|asos|shein|depop).*$', '', q, flags=re.IGNORECASE)
+    # Retire les indications de taille (Gr. 46, Size M, Taille 38, etc.)
+    q = re.sub(r'\b(gr\.?|size|taille|größe)\s*\w+', '', q, flags=re.IGNORECASE)
+    # Retire les couleurs en allemand courantes
+    de_to_fr = {"grün": "vert", "blau": "bleu", "rot": "rouge", "schwarz": "noir",
+                "weiß": "blanc", "braun": "marron", "gelb": "jaune", "grau": "gris"}
+    for de, fr in de_to_fr.items():
+        q = re.sub(rf'\b{de}\b', fr, q, flags=re.IGNORECASE)
+    # Retire les mots allemands courants de vêtements
+    q = re.sub(r'\b(hose|kleid|jacke|mantel|hemd|bluse|rock|schuhe|stiefel|tasche)\b',
+               lambda m: {"hose":"pantalon","kleid":"robe","jacke":"veste","mantel":"manteau",
+                          "hemd":"chemise","bluse":"blouse","rock":"jupe","schuhe":"chaussures",
+                          "stiefel":"bottes","tasche":"sac"}.get(m.group().lower(), m.group()),
+               q, flags=re.IGNORECASE)
+    # Nettoie les espaces multiples
+    q = re.sub(r'\s+', ' ', q).strip()
+    return q[:80]
+
+
 def _slug_to_keywords(url: str) -> str:
     try:
         path = unquote(urlparse(url).path)
@@ -130,9 +153,10 @@ def parse_pinterest_export(zip_file) -> tuple[list[dict], list[str]]:
                     pin_url = pm.group(1)
 
                 # Construit la requête de recherche
-                keyword = title or alt_text or _slug_to_keywords(canonical) or details
-                if not keyword:
+                raw_keyword = title or alt_text or _slug_to_keywords(canonical) or details
+                if not raw_keyword:
                     continue
+                keyword = _clean_query(raw_keyword)
 
                 # Image : hash Pinterest → CDN (format connu)
                 image_url = _hash_to_image(img_hash) if img_hash else ""
